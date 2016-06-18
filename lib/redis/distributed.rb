@@ -582,6 +582,11 @@ class Redis
       node_for(key).zrange(key, start, stop, options)
     end
 
+    # Return a range of members in a sorted set, by index.
+    def zrangethenrem(key, start, stop, options = {})
+      node_for(key).zrangethenrem(key, start, stop, options)
+    end
+
     # Return a range of members in a sorted set, by index, with scores ordered
     # from high to low.
     def zrevrange(key, start, stop, options = {})
@@ -607,6 +612,11 @@ class Redis
     # Return a range of members in a sorted set, by score.
     def zrangebyscore(key, min, max, options = {})
       node_for(key).zrangebyscore(key, min, max, options)
+    end
+
+    # Return a range of members in a sorted set, by score.
+    def zrangebyscorethenrem(key, min, max, options = {})
+      node_for(key).zrangebyscorethenrem(key, min, max, options)
     end
 
     # Return a range of members in a sorted set, by score, with scores ordered

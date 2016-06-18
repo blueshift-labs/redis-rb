@@ -1628,6 +1628,39 @@ class Redis
     end
   end
 
+  # Removes and returns a range of members in a sorted set, by index.
+  #
+  # @example Retrieve all members from a sorted set
+  #   redis.zrange("zset", 0, -1)
+  #     # => ["a", "b"]
+  # @example Retrieve all members and their scores from a sorted set
+  #   redis.zrange("zset", 0, -1, :with_scores => true)
+  #     # => [["a", 32.0], ["b", 64.0]]
+  #
+  # @param [String] key
+  # @param [Fixnum] start start index
+  # @param [Fixnum] stop stop index
+  # @param [Hash] options
+  #   - `:with_scores => true`: include scores in output
+  #
+  # @return [Array<String>, Array<[String, Float]>]
+  #   - when `:with_scores` is not specified, an array of members
+  #   - when `:with_scores` is specified, an array with `[member, score]` pairs
+  def zrangethenrem(key, start, stop, options = {})
+    args = []
+
+    with_scores = options[:with_scores] || options[:withscores]
+
+    if with_scores
+      args << "WITHSCORES"
+      block = FloatifyPairs
+    end
+
+    synchronize do |client|
+      client.call([:zrangethenrem, key, start, stop] + args, &block)
+    end
+  end
+
   # Return a range of members in a sorted set, by index, with scores ordered
   # from high to low.
   #
@@ -1792,6 +1825,51 @@ class Redis
 
     synchronize do |client|
       client.call([:zrangebyscore, key, min, max] + args, &block)
+    end
+  end
+
+  # Removes and returns a range of members in a sorted set, by score.
+  #
+  # @example Retrieve members with score `>= 5` and `< 100`
+  #   redis.zrangebyscore("zset", "5", "(100")
+  #     # => ["a", "b"]
+  # @example Retrieve the first 2 members with score `>= 0`
+  #   redis.zrangebyscore("zset", "0", "+inf", :limit => [0, 2])
+  #     # => ["a", "b"]
+  # @example Retrieve members and their scores with scores `> 5`
+  #   redis.zrangebyscore("zset", "(5", "+inf", :with_scores => true)
+  #     # => [["a", 32.0], ["b", 64.0]]
+  #
+  # @param [String] key
+  # @param [String] min
+  #   - inclusive minimum score is specified verbatim
+  #   - exclusive minimum score is specified by prefixing `(`
+  # @param [String] max
+  #   - inclusive maximum score is specified verbatim
+  #   - exclusive maximum score is specified by prefixing `(`
+  # @param [Hash] options
+  #   - `:with_scores => true`: include scores in output
+  #   - `:limit => [offset, count]`: skip `offset` members, return a maximum of
+  #   `count` members
+  #
+  # @return [Array<String>, Array<[String, Float]>]
+  #   - when `:with_scores` is not specified, an array of members
+  #   - when `:with_scores` is specified, an array with `[member, score]` pairs
+  def zrangebyscorethenrem(key, min, max, options = {})
+    args = []
+
+    with_scores = options[:with_scores] || options[:withscores]
+
+    if with_scores
+      args << "WITHSCORES"
+      block = FloatifyPairs
+    end
+
+    limit = options[:limit]
+    args.concat(["LIMIT"] + limit) if limit
+
+    synchronize do |client|
+      client.call([:zrangebyscorethenrem, key, min, max] + args, &block)
     end
   end
 
